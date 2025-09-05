@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>采购表格与PDF导出</title>
+    <script src="./src/assets/NotoSerifSC-Regular-normal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-cjk@0.2.1/dist/jspdf-cjk.umd.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Microsoft YaHei", sans-serif;
+      }
+      body {
+        padding: 15px;
+        background-color: #f5f7fa;
+        color: #333;
+      }
+      .container {
+        max-width: 1500px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #2c3e50;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #eee;
+        font-size: 1.5rem;
+      }
+      h2 {
+        font-size: 1.3rem;
+        margin: 15px 0;
+      }
+      .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+      }
+      .header-info .form-group {
+        margin-bottom: 10px;
+      }
+      label {
+        font-weight: bold;
+        color: #34495e;
+        margin-bottom: 5px;
+      }
+      input,
+      textarea,
+      button,
+      select {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        width: 100%;
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      button {
+        cursor: pointer;
+        background: #3498db;
+        color: white;
+        border: none;
+        transition: background 0.3s;
+        padding: 12px;
+        margin-top: 5px;
+      }
+      button:hover {
+        background: #2980b9;
+      }
+      .table-container {
+        overflow-x: auto;
+        margin: 20px 0;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        min-width: 700px;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #ddd;
+      }
+      th {
+        background-color: #3498db;
+        color: white;
+        font-size: 14px;
+      }
+      td {
+        font-size: 14px;
+      }
+      tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+      tr:hover {
+        background-color: #f1f8ff;
+      }
+      .add-btn {
+        background: #2ecc71;
+        margin-bottom: 15px;
+        max-width: 175px;
+        max-height: 55px;
+      }
+      .add-btn:hover {
+        background: #27ae60;
+      }
+      .delete-btn {
+        background: #e74c3c;
+        padding: 8px;
+        font-size: 14px;
+        margin-top: 0;
+      }
+      .delete-btn:hover {
+        background: #c0392b;
+      }
+      .summary {
+        text-align: right;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 20px 0;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 4px solid #3498db;
+      }
+      .export-btn {
+        background: #9b59b6;
+        padding: 12px;
+        font-size: 16px;
+        display: block;
+        margin: 0 auto;
+        width: 100%;
+        max-width: 300px;
+      }
+      .export-btn:hover {
+        background: #8e44ad;
+      }
+      .header-info {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 15px;
+      }
+      .serial-number {
+        width: 50px;
+        text-align: center;
+        font-weight: bold;
+      }
+      input[type="number"],
+      input[type="text"] {
+        min-width: 60px;
+      }
+
+      /* 桌面端样式 */
+      @media (min-width: 768px) {
+        body {
+          padding: 20px;
+        }
+        .container {
+          padding: 25px;
+        }
+        h1 {
+          font-size: 2rem;
+          margin-bottom: 25px;
+        }
+        h2 {
+          font-size: 1.5rem;
+        }
+        .form-group {
+          flex-direction: row;
+          align-items: center;
+        }
+        label {
+          width: 120px;
+          margin-bottom: 0;
+        }
+        input,
+        textarea,
+        select {
+          flex: 1;
+          margin-right: 10px;
+        }
+        .header-info {
+          flex-direction: row;
+          justify-content: space-between;
+          flex-wrap: wrap;
+        }
+        .header-info .form-group {
+          flex: 1;
+          min-width: 250px;
+          margin-right: 15px;
+        }
+        .delete-btn {
+          padding: 8px 12px;
+        }
+        .serial-number {
+          width: 60px;
+        }
+      }
+
+      /* 移动设备上的特殊调整 */
+      @media (max-width: 480px) {
+        body {
+          padding: 10px;
+        }
+        .container {
+          padding: 15px;
+          border-radius: 8px;
+        }
+        h1 {
+          font-size: 1.3rem;
+          margin-bottom: 15px;
+        }
+        h2 {
+          font-size: 1.2rem;
+        }
+        input,
+        textarea,
+        button,
+        select {
+          padding: 8px;
+          font-size: 14px;
+        }
+        th,
+        td {
+          padding: 8px 5px;
+        }
+        .summary {
+          font-size: 14px;
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="container">
+      <h1>采购申请表</h1>
+
+      <div class="header-info">
+        <div class="form-group">
+          <label for="location">场所：</label>
+          <input
+            type="text"
+            id="location"
+            v-model="location"
+            placeholder="请输入场所"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="submitDate">提交日期：</label>
+          <input type="date" id="submitDate" v-model="submitDate" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="proposer">采购申请人：</label>
+        <textarea
+          type="text"
+          id="proposer"
+          v-model="proposer"
+          placeholder="请输入姓名"
+        ></textarea>
+      </div>
+
+      <div
+        style="display: flex; justify-content: space-between; margin-top: 50px"
+      >
+        <h2>采购物品明细</h2>
+        <button class="add-btn" @click="addItem">+ 添加采购物品</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th class="serial-number">序号</th>
+              <th>购买物品</th>
+              <th>购买价格</th>
+              <th>购买数量</th>
+              <th>购买单价</th>
+              <th>购买总价</th>
+              <th>备注</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in items" :key="index">
+              <td class="serial-number">{{ index + 1 }}</td>
+              <td>
+                <input type="text" v-model="item.name" placeholder="物品名称" />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  v-model="item.price"
+                  placeholder="价格"
+                  min="0"
+                  step="0.01"
+                />
+              </td>
+              <td>
+                <input
+                  type="number"
+                  v-model="item.quantity"
+                  placeholder="数量"
+                  min="1"
+                />
+              </td>
+              <td>{{ item.price || 0 | currency }}</td>
+              <td>{{ (item.price * item.quantity) || 0 | currency }}</td>
+              <td>
+                <input
+                  type="text"
+                  v-model="item.remark"
+                  placeholder="备注信息"
+                />
+              </td>
+              <td>
+                <button
+                  class="delete-btn"
+                  @click="deleteItem(index)"
+                  :disabled="items.length <= 1"
+                >
+                  删除
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="summary">总计: {{ totalAmount | currency }}</div>
+
+      <div class="form-group">
+        <label for="generalRemark">总体备注：</label>
+        <textarea
+          id="generalRemark"
+          v-model="generalRemark"
+          placeholder="请输入总体备注信息（可选）"
+        ></textarea>
+      </div>
+
+      <button class="export-btn" @click="exportToPDF">导出为PDF</button>
+    </div>
+
+    <script>
+      window.jsPDF = window.jspdf.jsPDF;
+
+      Vue.filter("currency", function (value) {
+        if (!value) return "￥0.00";
+        return "￥" + parseFloat(value).toFixed(2);
+      });
+
+      new Vue({
+        el: "#app",
+        data: {
+          location: "",
+          proposer: "",
+          submitDate: new Date().toISOString().substr(0, 10),
+          generalRemark: "",
+          items: [{ name: "", price: 0, quantity: 1, remark: "" }],
+        },
+        computed: {
+          totalAmount() {
+            return this.items.reduce((total, item) => {
+              return total + (item.price * item.quantity || 0);
+            }, 0);
+          },
+        },
+        methods: {
+          addItem() {
+            this.items.push({ name: "", price: 0, quantity: 1, remark: "" });
+          },
+          deleteItem(index) {
+            if (this.items.length > 1) {
+              this.items.splice(index, 1);
+            }
+          },
+          exportToPDF() {
+            // 验证表单
+            if (!this.location) {
+              alert("请选择场所");
+              return;
+            }
+
+            if (!this.proposer) {
+              alert("请填写采购申请人");
+              return;
+            }
+
+            if (
+              this.items.some(
+                (item) => !item.name || !item.price || !item.quantity
+              )
+            ) {
+              alert("请完善所有采购物品信息");
+              return;
+            }
+
+            // 创建PDF文档
+            const doc = new jsPDF({
+              putOnlyUsedFonts: true,
+              orientation: "p",
+              unit: "mm",
+              format: "a4",
+            });
+            doc.addFileToVFS("NotoSerifSC-Regular-normal.ttf", font);
+            doc.addFont(
+              "NotoSerifSC-Regular-normal.ttf",
+              "NotoSerifSC-Regular",
+              "normal"
+            );
+            doc.setFont("NotoSerifSC-Regular");
+            // 添加标题
+            doc.setFontSize(20);
+            doc.text("采购申请表", 105, 20, { align: "center" });
+            // 添加场所和申请人信息
+            doc.setFontSize(12);
+            doc.text(`场所: ${this.location}`, 20, 35);
+            doc.text(`采购申请人: ${this.proposer}`, 20, 45);
+            doc.text(`提交日期: ${this.submitDate}`, 20, 55);
+
+            // 准备表格数据（包含序号列，不包含删除列）
+            const tableData = this.items.map((item, index) => [
+              index + 1, // 序号
+              item.name,
+              `￥${parseFloat(item.price).toFixed(2)}`,
+              item.quantity,
+              `￥${parseFloat(item.price).toFixed(2)}`,
+              `￥${(item.price * item.quantity).toFixed(2)}`,
+              item.remark || "无",
+            ]);
+
+            // 添加总计行
+            tableData.push([
+              {
+                content: "总计",
+                colSpan: 5,
+                styles: {
+                  fontStyle: "bold",
+                  fillColor: [220, 220, 220],
+                  halign: "right",
+                },
+              },
+              {
+                content: `￥${this.totalAmount.toFixed(2)}`,
+                styles: { fontStyle: "bold", fillColor: [220, 220, 220] },
+              },
+              { content: "", styles: { fillColor: [220, 220, 220] } },
+            ]);
+
+            // 生成表格
+            doc.autoTable({
+              head: [
+                [
+                  "序号",
+                  "购买物品",
+                  "购买价格",
+                  "购买数量",
+                  "购买单价",
+                  "购买总价",
+                  "备注",
+                ],
+              ],
+              body: tableData,
+              startY: 65,
+              theme: "grid",
+              headStyles: {
+                font: "NotoSerifSC-Regular",
+                fillColor: [52, 152, 219],
+                textColor: 255,
+              },
+              styles: {
+                fontSize: 10,
+                cellPadding: 3,
+                valign: "middle",
+                font: "NotoSerifSC-Regular",
+              },
+              margin: { top: 65 },
+              columnStyles: {
+                0: { cellWidth: 15 }, // 序号列宽度
+              },
+            });
+
+            // 添加总体备注
+            if (this.generalRemark) {
+              const finalY = doc.lastAutoTable.finalY + 10;
+              doc.setFontSize(12);
+              doc.text("总体备注:", 20, finalY);
+
+              // 处理长文本换行
+              const splitText = doc.splitTextToSize(this.generalRemark, 170);
+              doc.text(splitText, 20, finalY + 10);
+            }
+
+            // 添加页脚
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+              doc.setPage(i);
+              doc.setFontSize(10);
+              doc.text(
+                `第 ${i} 页/共 ${pageCount} 页`,
+                105,
+                doc.internal.pageSize.height - 10,
+                {
+                  align: "center",
+                }
+              );
+            }
+
+            // 保存PDF
+            doc.save(`${this.location}-${this.proposer}的采购申请表.pdf`);
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
